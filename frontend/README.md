@@ -34,3 +34,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+## Learnings
+
+### nextjs client route
+
+O arquivo, dentro de `src/app/`, que possui o nome "page.tsx" é uma página do next. Se algum arquivo com esse nome estiver dentro de uma pasta mais profunda, como em `.../room/[id]/page.tsx`, então o *route param* dessa página é seu id.
+
+### use client
+
+Quando utilizamos o `'use client'` dentro de um componente, significa que ele será renderizado pelo cliente. Isso acontecerá quando o componente possui um comportamento dinâmico definido pelos states do react.
