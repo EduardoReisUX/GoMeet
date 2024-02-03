@@ -14,7 +14,7 @@ export class App {
   }
 
   public listen() {
-    this.app.listen(3333, () => console.log("Server running on port 3333"));
+    this.http.listen(3333, () => console.log("Server running on port 3333"));
   }
 
   public listenSocket() {
