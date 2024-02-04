@@ -2,30 +2,35 @@
 
 import { SocketContext } from "@/contexts/SocketContext";
 import Image from "next/image";
-import { FormEvent, useContext, useEffect, useRef } from "react";
+import { FormEvent, useContext, useEffect, useRef, useState } from "react";
+
+interface IChatMessage {
+  message: string;
+  username: string;
+  roomId: string;
+  time: string;
+}
 
 interface ChatProps {
   roomId: string;
 }
 
 export function Chat({ roomId }: ChatProps) {
-  const date = new Date();
-  const hours = date.getHours().toString();
-  const minutes = date.getMinutes().toString();
-
   const currentMsg = useRef<HTMLInputElement | null>(null);
   const { socket } = useContext(SocketContext);
+  const [chat, setChat] = useState<IChatMessage[]>([]);
 
   useEffect(() => {
     socket?.on("chat", (data) => {
       console.log("message: ", data);
+      setChat((prevState) => [...prevState, data]);
     });
   }, [socket]);
 
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (currentMsg.current?.value.trim() === "") {
+    if (!currentMsg.current || currentMsg.current?.value.trim() === "") {
       return;
     }
 
@@ -37,6 +42,7 @@ export function Chat({ roomId }: ChatProps) {
     };
 
     socket?.emit("chat", sendMessageToServer);
+    setChat((prevState) => [...prevState, sendMessageToServer]);
 
     currentMsg.current.value = "";
   }
@@ -44,18 +50,15 @@ export function Chat({ roomId }: ChatProps) {
   return (
     <aside className="relative h-full bg-[#2C2C2C] px-4 pt-4 w-[20%] rounded-md m-3 hidden md:block md:w-[15%]">
       <div className="relative h-full">
-        <div className="bg-gray-950 rounded p-2">
-          <header className="flex text-primary justify-between">
-            <b>Eduardo F</b>
-            <time>
-              {hours}:{minutes}
-            </time>
-          </header>
-          <p className="mt-5 text-sm">
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Eius, eos?
-          </p>
-        </div>
-
+        {chat.map((chat, index) => (
+          <div className="bg-gray-950 rounded p-2 mb-4">
+            <header className="flex text-primary justify-between">
+              <b>{chat.username}</b>
+              <time>{chat.time}</time>
+            </header>
+            <p className="mt-5 text-sm">{chat.message}</p>
+          </div>
+        ))}
         <form
           className="absolute bottom-2 w-full"
           onSubmit={(e) => sendMessage(e)}
