@@ -14,6 +14,7 @@ interface RoomPageProps {
 export default function RoomPage({ params }: RoomPageProps) {
   const { socket } = useContext(SocketContext);
   const localStream = useRef<HTMLVideoElement>(null);
+  const peerConnections = useRef<Record<string, RTCPeerConnection>>({});
 
   useEffect(() => {
     socket?.on("connect", async () => {
@@ -33,8 +34,48 @@ export default function RoomPage({ params }: RoomPageProps) {
 
     socket?.on("new user", (data) => {
       debugger;
+      createPeerConnection(data.socketId, true);
+      socket.emit("newUserStart", {
+        to: data.socketId,
+        sender: socket.id,
+      });
+    });
+
+    socket?.on("newUserStart", (data) => {
+      debugger;
+      createPeerConnection(data.sender, false);
+    });
+
+    socket?.on("sdp", (data) => {
+      debugger;
     });
   }, [socket]);
+
+  // WEB RTC PEER2PEER
+  const createPeerConnection = async (
+    socketId: string,
+    createOffer: boolean
+  ) => {
+    const config = {
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    };
+
+    const peer = new RTCPeerConnection(config);
+    peerConnections.current[socketId] = peer;
+
+    if (createOffer) {
+      const peerConnection = peerConnections.current[socketId];
+      const offer = await peerConnection.createOffer();
+
+      await peerConnection.setLocalDescription(offer);
+
+      socket?.emit("sdp", {
+        to: socketId,
+        sender: socket.id,
+        description: peerConnection.localDescription,
+      });
+    }
+  };
 
   const initCamera = async () => {
     const video = await navigator.mediaDevices.getUserMedia({

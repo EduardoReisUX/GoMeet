@@ -30,6 +30,7 @@ export class App {
 
     socket.on("subscribe", (data) => {
       socket.join(data.roomId);
+      socket.join(data.socketId);
 
       const roomsSession = Array.from(socket.rooms);
 
@@ -39,6 +40,20 @@ export class App {
           username: data.username,
         });
       }
+    });
+
+    socket.on("newUserStart", (data) => {
+      debugger;
+      socket.to(data.to).emit("newUserStart", {
+        sender: data.sender,
+      });
+    });
+
+    socket.on("sdp", (data) => {
+      socket.to(data.to).emit("sdp", {
+        description: data.description,
+        sender: data.sender,
+      });
     });
 
     socket.on("chat", (data) => {
