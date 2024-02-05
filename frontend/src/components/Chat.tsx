@@ -51,7 +51,7 @@ export function Chat({ roomId }: ChatProps) {
     <aside className="relative h-full bg-[#2C2C2C] px-4 pt-4 w-[20%] rounded-md m-3 hidden md:block md:w-[15%]">
       <div className="relative h-full">
         {chat.map((chat, index) => (
-          <div className="bg-gray-950 rounded p-2 mb-4">
+          <div className="bg-gray-950 rounded p-2 mb-4" key={index}>
             <header className="flex text-primary justify-between">
               <b>{chat.username}</b>
               <time>{chat.time}</time>
