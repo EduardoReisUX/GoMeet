@@ -16,13 +16,23 @@ export default function RoomPage({ params }: RoomPageProps) {
   const localStream = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    socket?.on("connection", async () => {
-      console.log("logou");
+    socket?.on("connect", async () => {
+      debugger;
+
       socket?.emit("subscribe", {
         roomId: params.id,
         socketId: socket.id,
       });
-      await initCamera();
+
+      try {
+        await initCamera();
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    socket?.on("new user", (data) => {
+      debugger;
     });
   }, [socket]);
 
@@ -49,7 +59,7 @@ export default function RoomPage({ params }: RoomPageProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="bg-gray-950 w-full rounded-md h-full p-2 relative">
               <video
-                className="h-full w-full"
+                className="h-full w-full mirror-mode"
                 ref={localStream}
                 autoPlay
                 playsInline

@@ -22,22 +22,30 @@ export class App {
   }
 
   public listenSocket() {
-    this.io.of("/streams").on("connection", this.socketEvents);
+    this.io.of("/streams").on("connect", this.socketEvents);
   }
 
   private socketEvents(socket: Socket) {
     console.log(`Socket connected: ${socket.id}`);
 
     socket.on("subscribe", (data) => {
-      debugger;
       socket.join(data.roomId);
 
-      socket.on("chat", (data) => {
-        socket.broadcast.to(data.roomId).emit("chat", {
-          message: data.message,
+      const roomsSession = Array.from(socket.rooms);
+
+      if (roomsSession.length > 1) {
+        socket.to(data.roomId).emit("new user", {
+          socketId: socket.id,
           username: data.username,
-          time: data.time,
         });
+      }
+    });
+
+    socket.on("chat", (data) => {
+      socket.broadcast.to(data.roomId).emit("chat", {
+        message: data.message,
+        username: data.username,
+        time: data.time,
       });
     });
   }
