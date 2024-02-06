@@ -3,7 +3,7 @@ import { Chat } from "@/components/Chat";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { SocketContext } from "@/contexts/SocketContext";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
 interface RoomPageProps {
   params: {
@@ -15,6 +15,7 @@ export default function RoomPage({ params }: RoomPageProps) {
   const { socket } = useContext(SocketContext);
   const localStream = useRef<HTMLVideoElement>(null);
   const peerConnections = useRef<Record<string, RTCPeerConnection>>({});
+  const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
 
   useEffect(() => {
     socket?.on("connect", async () => {
@@ -46,9 +47,47 @@ export default function RoomPage({ params }: RoomPageProps) {
       createPeerConnection(data.sender, false);
     });
 
-    socket?.on("sdp", (data) => {
-      debugger;
-    });
+    socket?.on(
+      "sdp",
+      async (data: { description: RTCSessionDescription; sender: string }) => {
+        debugger;
+
+        const peerConnection = peerConnections.current[data.sender];
+
+        if (data.description.type === "offer") {
+          await peerConnection.setRemoteDescription(data.description);
+
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+
+          socket.emit("sdp", {
+            to: data.sender,
+            sender: socket.id,
+            description: peerConnection.localDescription,
+          });
+        }
+
+        if (data.description.type === "answer") {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(data.description)
+          );
+        }
+      }
+    );
+
+    socket?.on(
+      "ice candidates",
+      async (data: { candidate: RTCIceCandidate; sender: string }) => {
+        debugger;
+        const peerConnection = peerConnections.current[data.sender];
+
+        if (!data.candidate) return;
+
+        await peerConnection.addIceCandidate(
+          new RTCIceCandidate(data.candidate)
+        );
+      }
+    );
   }, [socket]);
 
   // WEB RTC PEER2PEER
@@ -64,7 +103,9 @@ export default function RoomPage({ params }: RoomPageProps) {
     peerConnections.current[socketId] = peer;
 
     if (createOffer) {
+      debugger;
       const peerConnection = peerConnections.current[socketId];
+
       const offer = await peerConnection.createOffer();
 
       await peerConnection.setLocalDescription(offer);
@@ -74,7 +115,33 @@ export default function RoomPage({ params }: RoomPageProps) {
         sender: socket.id,
         description: peerConnection.localDescription,
       });
+
+      return;
     }
+
+    const peerConnection = peerConnections.current[socketId];
+
+    // Capturar a mídia
+    peerConnection.ontrack = (event) => {
+      const remoteStream = event.streams[0];
+
+      // const dataStream = {
+      //   id: socketId,
+      //   stream: remoteStream
+      // }
+
+      setRemoteStreams((prevState) => [...prevState, remoteStream]);
+    };
+
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket?.emit("ice candidates", {
+          to: socketId,
+          sender: socket.id,
+          candidate: event.candidate,
+        });
+      }
+    };
   };
 
   const initCamera = async () => {
@@ -107,14 +174,24 @@ export default function RoomPage({ params }: RoomPageProps) {
               ></video>
               <span className="absolute bottom-3">Eduardo F</span>
             </div>
-            <div className="bg-gray-950 w-full rounded-md h-full p-2 relative">
-              <video className="h-full w-full"></video>
-              <span className="absolute bottom-3">Eduardo F</span>
-            </div>
-            <div className="bg-gray-950 w-full rounded-md h-full p-2 relative">
-              <video className="h-full w-full"></video>
-              <span className="absolute bottom-3">Eduardo F</span>
-            </div>
+            {remoteStreams.map((stream, index) => {
+              return (
+                <div
+                  className="bg-gray-950 w-full rounded-md h-full p-2 relative"
+                  key={index}
+                >
+                  <video
+                    className="h-full w-full"
+                    autoPlay
+                    ref={(video) => {
+                      if (video && video.srcObject !== stream)
+                        video.srcObject = stream;
+                    }}
+                  ></video>
+                  <span className="absolute bottom-3">Eduardo F</span>
+                </div>
+              );
+            })}
           </div>
         </div>
         <Chat roomId={params.id} />
