@@ -16,6 +16,9 @@ export default function RoomPage({ params }: RoomPageProps) {
   const localStream = useRef<HTMLVideoElement>(null);
   const peerConnections = useRef<Record<string, RTCPeerConnection>>({});
   const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
+  const [videoMediaStream, setVideoMediaStream] = useState<MediaStream | null>(
+    null
+  );
 
   useEffect(() => {
     socket?.on("connect", async () => {
@@ -27,7 +30,7 @@ export default function RoomPage({ params }: RoomPageProps) {
       });
 
       try {
-        await initCamera();
+        await initLocalCamera();
       } catch (error) {
         console.log(error);
       }
@@ -101,6 +104,19 @@ export default function RoomPage({ params }: RoomPageProps) {
 
     const peer = new RTCPeerConnection(config);
     peerConnections.current[socketId] = peer;
+    const peerConnection = peerConnections.current[socketId];
+
+    if (videoMediaStream) {
+      videoMediaStream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, videoMediaStream);
+      });
+    } else {
+      const video = await initRemoteCamera();
+
+      video.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, video);
+      });
+    }
 
     if (createOffer) {
       debugger;
@@ -118,8 +134,6 @@ export default function RoomPage({ params }: RoomPageProps) {
 
       return;
     }
-
-    const peerConnection = peerConnections.current[socketId];
 
     // Capturar a mídia
     peerConnection.ontrack = (event) => {
@@ -144,7 +158,7 @@ export default function RoomPage({ params }: RoomPageProps) {
     };
   };
 
-  const initCamera = async () => {
+  const initLocalCamera = async () => {
     const video = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: {
@@ -153,9 +167,23 @@ export default function RoomPage({ params }: RoomPageProps) {
       },
     });
 
+    setVideoMediaStream(video);
+
     if (!localStream.current) return;
 
     localStream.current.srcObject = video;
+  };
+
+  const initRemoteCamera = async () => {
+    const video = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: {
+        noiseSuppression: true,
+        echoCancellation: true,
+      },
+    });
+
+    return video;
   };
 
   return (
