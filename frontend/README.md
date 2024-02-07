@@ -44,3 +44,13 @@ O arquivo, dentro de `src/app/`, que possui o nome "page.tsx" é uma página do 
 ### use client
 
 Quando utilizamos o `'use client'` dentro de um componente, significa que ele será renderizado pelo cliente. Isso acontecerá quando o componente possui um comportamento dinâmico definido pelos states do react.
+
+### useRef
+
+O hook `useRef` previne que o componente input renderize todas as vezes que o usuário digitar algo.
+
+## Links
+
+- [Real-time communication for the web](https://webrtc.org/)
+- [Primeiros passos com as conexões de peering](https://webrtc.org/getting-started/peer-connections?hl=pt-br#initiating_peer_connections)
+- [Repositório Semana do Herói 03](https://github.com/HeroCodeBR/semana-heroi-03)
