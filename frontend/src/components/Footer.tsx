@@ -9,9 +9,14 @@ const height = 16;
 interface FooterProps {
   videoMediaStream: MediaStream | null;
   peerConnections: Record<string, RTCPeerConnection>;
+  localStream: HTMLVideoElement | null;
 }
 
-export function Footer({ videoMediaStream, peerConnections }: FooterProps) {
+export function Footer({
+  videoMediaStream,
+  peerConnections,
+  localStream,
+}: FooterProps) {
   const date = new Date();
   const hours = date.getHours().toString();
   const minutes = date.getMinutes().toString();
@@ -32,7 +37,7 @@ export function Footer({ videoMediaStream, peerConnections }: FooterProps) {
           sender.replaceTrack(
             videoMediaStream
               ?.getAudioTracks()
-              .find((track) => track.kind === "audio")
+              .find((track) => track.kind === "audio") || null
           );
         }
       });
@@ -51,11 +56,48 @@ export function Footer({ videoMediaStream, peerConnections }: FooterProps) {
           sender.replaceTrack(
             videoMediaStream
               ?.getVideoTracks()
-              .find((track) => track.kind === "video")
+              .find((track) => track.kind === "video") || null
           );
         }
       });
     });
+  };
+
+  const toggleScreenSharing = async () => {
+    if (!isScreenSharing) {
+      const videoShareScreen = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+
+      if (localStream?.srcObject) {
+        localStream.srcObject = videoShareScreen;
+      }
+
+      Object.values(peerConnections).forEach((peerConnection) => {
+        peerConnection.getSenders().forEach((sender) => {
+          if (sender.track?.kind === "video") {
+            sender.replaceTrack(videoShareScreen.getVideoTracks()[0]);
+          }
+        });
+      });
+
+      setIsScreenSharing(!isCameraOff);
+      return;
+    }
+
+    if (localStream?.srcObject) {
+      localStream.srcObject = videoMediaStream;
+    }
+
+    Object.values(peerConnections).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === "video") {
+          sender.replaceTrack(videoMediaStream?.getVideoTracks()[0] || null);
+        }
+      });
+    });
+
+    setIsScreenSharing(!isCameraOff);
   };
 
   return (
@@ -114,7 +156,7 @@ export function Footer({ videoMediaStream, peerConnections }: FooterProps) {
             </button>
             <button
               className="px-4 py-2 rounded-lg bg-gray-950"
-              onClick={() => setIsScreenSharing(!isScreenSharing)}
+              onClick={toggleScreenSharing}
             >
               {isScreenSharing ? (
                 <Image

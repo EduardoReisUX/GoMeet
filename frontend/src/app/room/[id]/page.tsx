@@ -228,6 +228,7 @@ export default function RoomPage({ params }: RoomPageProps) {
       <Footer
         videoMediaStream={videoMediaStream}
         peerConnections={peerConnections.current}
+        localStream={localStream.current}
       />
     </div>
   );
