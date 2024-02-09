@@ -6,7 +6,12 @@ import Image from "next/image";
 const width = 16;
 const height = 16;
 
-export function Footer() {
+interface FooterProps {
+  videoMediaStream: MediaStream | null;
+  peerConnections: Record<string, RTCPeerConnection>;
+}
+
+export function Footer({ videoMediaStream, peerConnections }: FooterProps) {
   const date = new Date();
   const hours = date.getHours().toString();
   const minutes = date.getMinutes().toString();
@@ -14,6 +19,44 @@ export function Footer() {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+
+  const toggleMuted = () => {
+    setIsMuted(!isMuted);
+    videoMediaStream?.getAudioTracks().forEach((track) => {
+      track.enabled = !isMuted;
+    });
+
+    Object.values(peerConnections).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === "audio") {
+          sender.replaceTrack(
+            videoMediaStream
+              ?.getAudioTracks()
+              .find((track) => track.kind === "audio")
+          );
+        }
+      });
+    });
+  };
+
+  const toggleCamera = () => {
+    setIsCameraOff(!isCameraOff);
+    videoMediaStream?.getVideoTracks().forEach((track) => {
+      track.enabled = !isCameraOff;
+    });
+
+    Object.values(peerConnections).forEach((peerConnection) => {
+      peerConnection.getSenders().forEach((sender) => {
+        if (sender.track?.kind === "video") {
+          sender.replaceTrack(
+            videoMediaStream
+              ?.getVideoTracks()
+              .find((track) => track.kind === "video")
+          );
+        }
+      });
+    });
+  };
 
   return (
     <footer className="fixed bottom-0 bg-black py-2 w-full">
@@ -25,7 +68,7 @@ export function Footer() {
           <div className="flex items-center justify-center space-x-3">
             <button
               className="px-4 py-2 rounded-lg bg-gray-950"
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={toggleMuted}
             >
               {isMuted ? (
                 <>
@@ -49,7 +92,7 @@ export function Footer() {
             </button>
             <button
               className="px-4 py-2 rounded-lg bg-gray-950"
-              onClick={() => setIsCameraOff(!isCameraOff)}
+              onClick={toggleCamera}
             >
               {isCameraOff ? (
                 <Image

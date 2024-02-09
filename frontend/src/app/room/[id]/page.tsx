@@ -225,7 +225,10 @@ export default function RoomPage({ params }: RoomPageProps) {
         <Chat roomId={params.id} />
       </main>
 
-      <Footer />
+      <Footer
+        videoMediaStream={videoMediaStream}
+        peerConnections={peerConnections.current}
+      />
     </div>
   );
 }
