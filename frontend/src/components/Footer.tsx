@@ -10,12 +10,14 @@ interface FooterProps {
   videoMediaStream: MediaStream | null;
   peerConnections: Record<string, RTCPeerConnection>;
   localStream: HTMLVideoElement | null;
+  logout: () => void;
 }
 
 export function Footer({
   videoMediaStream,
   peerConnections,
   localStream,
+  logout,
 }: FooterProps) {
   const date = new Date();
   const hours = date.getHours().toString();
@@ -176,7 +178,10 @@ export function Footer({
                 ></Image>
               )}
             </button>
-            <button className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/80">
+            <button
+              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/80"
+              onClick={logout}
+            >
               <Image
                 className="h-6 w-8"
                 alt="GoMeet"

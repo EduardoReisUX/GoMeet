@@ -11,11 +11,16 @@ interface RoomPageProps {
   };
 }
 
+interface IDataStream {
+  id: string;
+  stream: MediaStream;
+}
+
 export default function RoomPage({ params }: RoomPageProps) {
   const { socket } = useContext(SocketContext);
   const localStream = useRef<HTMLVideoElement>(null);
   const peerConnections = useRef<Record<string, RTCPeerConnection>>({});
-  const [remoteStreams, setRemoteStreams] = useState<MediaStream[]>([]);
+  const [remoteStreams, setRemoteStreams] = useState<IDataStream[]>([]);
   const [videoMediaStream, setVideoMediaStream] = useState<MediaStream | null>(
     null
   );
@@ -139,12 +144,18 @@ export default function RoomPage({ params }: RoomPageProps) {
     peerConnection.ontrack = (event) => {
       const remoteStream = event.streams[0];
 
-      // const dataStream = {
-      //   id: socketId,
-      //   stream: remoteStream
-      // }
+      const dataStream: IDataStream = {
+        id: socketId,
+        stream: remoteStream,
+      };
 
-      setRemoteStreams((prevState) => [...prevState, remoteStream]);
+      setRemoteStreams((prevState: IDataStream[]) => {
+        if (!prevState.some((stream) => stream.id === socketId)) {
+          return [...prevState, dataStream];
+        }
+
+        return prevState;
+      });
     };
 
     peer.onicecandidate = (event) => {
@@ -154,6 +165,31 @@ export default function RoomPage({ params }: RoomPageProps) {
           sender: socket.id,
           candidate: event.candidate,
         });
+      }
+    };
+
+    peerConnection.onsignalingstatechange = (event) => {
+      if (peerConnection.signalingState === "closed") {
+        setRemoteStreams((prevState) =>
+          prevState.filter((stream) => stream.id !== socketId)
+        );
+        return;
+      }
+    };
+
+    peerConnection.onconnectionstatechange = (event) => {
+      if (peerConnection.connectionState === "closed") {
+        setRemoteStreams((prevState) =>
+          prevState.filter((stream) => stream.id !== socketId)
+        );
+        return;
+      }
+
+      if (peerConnection.connectionState === "failed") {
+        setRemoteStreams((prevState) =>
+          prevState.filter((stream) => stream.id !== socketId)
+        );
+        return;
       }
     };
   };
@@ -186,6 +222,19 @@ export default function RoomPage({ params }: RoomPageProps) {
     return video;
   };
 
+  const logout = () => {
+    videoMediaStream?.getTracks().forEach((track) => {
+      track.stop();
+    });
+
+    Object.values(peerConnections.current).forEach((peerConnection) => {
+      peerConnection.close();
+    });
+
+    socket?.disconnect();
+    window.location.href = "/";
+  };
+
   return (
     <div className="h-screen">
       <Header />
@@ -212,8 +261,8 @@ export default function RoomPage({ params }: RoomPageProps) {
                     className="h-full w-full"
                     autoPlay
                     ref={(video) => {
-                      if (video && video.srcObject !== stream)
-                        video.srcObject = stream;
+                      if (video && video.srcObject !== stream.stream)
+                        video.srcObject = stream.stream;
                     }}
                   ></video>
                   <span className="absolute bottom-3">Eduardo F</span>
@@ -229,6 +278,7 @@ export default function RoomPage({ params }: RoomPageProps) {
         videoMediaStream={videoMediaStream}
         peerConnections={peerConnections.current}
         localStream={localStream.current}
+        logout={logout}
       />
     </div>
   );
