@@ -54,3 +54,4 @@ O hook `useRef` previne que o componente input renderize todas as vezes que o us
 - [Real-time communication for the web](https://webrtc.org/)
 - [Primeiros passos com as conexões de peering](https://webrtc.org/getting-started/peer-connections?hl=pt-br#initiating_peer_connections)
 - [Repositório Semana do Herói 03](https://github.com/HeroCodeBR/semana-heroi-03)
+- [STUN server](https://en.wikipedia.org/wiki/STUN)
